@@ -119,10 +119,10 @@ If you’re reviewing this repo, check out:
 
 ## Roadmap (next iterations)
 
-- ✅ Skill normalization improvements (synonyms: “analytics” vs “analytical skills”)
-- 🔜 Hybrid matching: TF‑IDF + embeddings (e.g., Sentence Transformers)
-- 🔜 Explainability: “missing skills” per recommended job
-- 🔜 Simple web app (Streamlit/FastAPI) with a clean UI
+- skill normalization improvements (synonyms: “analytics” vs “analytical skills”)
+- Hybrid matching: TF‑IDF + embeddings (e.g., Sentence Transformers)
+- Explainability: “missing skills” per recommended job
+- Simple web app (Streamlit/FastAPI) with a clean UI
 
 ---
 
