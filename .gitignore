@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data / outputs (keep small sample files if you want)
+# Uncomment if your dataset is large and local
+# data/*.csv
+# outputs/*.csv
+
+# IDE
+.vscode/
+.idea/
