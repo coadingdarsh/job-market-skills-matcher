@@ -1,13 +1,19 @@
+# dashboard/app.py
+
 import json
 import re
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, Any, List
 
 import streamlit as st
 import pandas as pd
-
-# Optional charting (built-in st.bar_chart works too)
 import matplotlib.pyplot as plt
+
+from pypdf import PdfReader
+import docx
+
 
 # -----------------------------
 # Helpers
@@ -21,10 +27,12 @@ def safe_get(d: Dict[str, Any], path: List[str], default=None):
             return default
     return cur
 
+
 def normalize_skill(s: str) -> str:
     s = s.strip().lower()
     s = re.sub(r"\s+", " ", s)
     return s
+
 
 def score_match(resume_skills: List[str], job_skills: List[str]) -> float:
     r = set(map(normalize_skill, resume_skills))
@@ -33,49 +41,61 @@ def score_match(resume_skills: List[str], job_skills: List[str]) -> float:
         return 0.0
     return round(100 * (len(r & j) / len(j)), 2)
 
+
 def skill_gaps(resume_skills: List[str], job_skills: List[str]) -> List[str]:
     r = set(map(normalize_skill, resume_skills))
     j = set(map(normalize_skill, job_skills))
     gaps = sorted(list(j - r))
     return gaps
 
+
 # -----------------------------
-# Adapter: plug your parser here
+# REAL Parser: uses uploaded resume file
 # -----------------------------
 def run_your_parser(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     """
-    Replace this with your actual repo function call.
-    Expected output format (example):
-      {
-        "candidate": {"name": "...", "email": "...", "phone": "..."},
-        "summary": "...",
-        "skills": ["python", "sql", ...],
-        "experience": [{"company": "...", "title": "...", "bullets": [...]}, ...],
-        "education": [...],
-        "projects": [...],
-        "raw_text": "..."
-      }
+    Reads the uploaded resume file and returns extracted text + basic metadata.
+    This replaces the demo output so every upload reflects the current resume.
     """
-    # --- TEMP fallback until you wire your real parser ---
-    # Put a minimal mock so dashboard runs immediately.
+    suffix = Path(filename).suffix.lower() or ".pdf"
+
+    # Save upload to a temp file so PDF/DOCX libs can read it
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+
+    # Extract text based on file type
+    text = ""
+    if suffix == ".pdf":
+        reader = PdfReader(tmp_path)
+        text = "\n".join([(p.extract_text() or "") for p in reader.pages])
+    elif suffix == ".docx":
+        d = docx.Document(tmp_path)
+        text = "\n".join(p.text for p in d.paragraphs)
+    else:
+        # txt fallback
+        text = file_bytes.decode("utf-8", errors="ignore")
+
+    text = (text or "").strip()
+
+    # Return REAL extracted content (no more demo)
     return {
-        "candidate": {"name": "Demo Candidate", "email": "demo@email.com", "phone": "+1 (000) 000-0000"},
-        "summary": "AI Resume Parser demo output. Wire your parser function in run_your_parser().",
-        "skills": ["Python", "NLP", "spaCy", "PyPDF2", "Regex", "FastAPI", "SQL", "Git"],
-        "experience": [
-            {"company": "Visionary Pirates", "title": "Marketing & Analytics Lead", "bullets": ["Managed budgets", "Optimized campaigns"]},
-        ],
-        "education": [{"school": "Algoma University", "degree": "BSc Computer Science"}],
-        "projects": [{"name": "AI Resume Parser", "desc": "Extracts entities + sections from resumes"}],
-        "raw_text": ""
+        "candidate": {"name": filename, "email": "", "phone": ""},
+        "summary": (text[:400] + "…") if len(text) > 400 else text,
+        "skills": [],  # Optional: we can add skills extraction next
+        "experience": [],
+        "education": [],
+        "projects": [],
+        "raw_text": text,
     }
+
 
 # -----------------------------
 # UI
 # -----------------------------
 st.set_page_config(page_title="AI Resume Parser Dashboard", layout="wide")
 
-st.title("📄 AI Resume Parser — Dashboard")
+st.title("📄 Skills Gap Finder ")
 st.caption("Upload a resume, inspect extracted fields, and test role matching.")
 
 with st.sidebar:
@@ -110,7 +130,7 @@ if not uploaded:
     st.info("Upload a resume to see the parsed output and dashboard analytics.")
     st.stop()
 
-file_bytes = uploaded.read()
+file_bytes = uploaded.getvalue()
 parsed = run_your_parser(file_bytes, uploaded.name)
 
 # Top summary cards
@@ -126,18 +146,18 @@ with col1:
     b.metric("Email", cand_email)
     c.metric("Phone", cand_phone)
 
-    st.write("**Summary**")
-    st.write(parsed.get("summary", "—"))
+    st.write("**Summary (from uploaded resume text)**")
+    st.write(parsed.get("summary", "—") or "—")
 
     st.write("**Skills**")
     if skills:
         st.write(" ".join([f"`{s}`" for s in skills]))
     else:
-        st.warning("No skills extracted.")
+        st.warning("No skills extracted yet (skills extraction can be added next).")
 
     st.divider()
     st.subheader("🧩 Sections")
-    tabs = st.tabs(["Experience", "Education", "Projects", "Raw JSON"])
+    tabs = st.tabs(["Experience", "Education", "Projects", "Raw Text", "Raw JSON"])
 
     with tabs[0]:
         exp = parsed.get("experience", []) or []
@@ -164,6 +184,9 @@ with col1:
             st.write(p.get("desc", ""))
 
     with tabs[3]:
+        st.text_area("Extracted resume text", parsed.get("raw_text", ""), height=380)
+
+    with tabs[4]:
         st.json(parsed)
 
 with col2:
@@ -175,14 +198,19 @@ with col2:
         job_skills = [s.strip() for s in j["skills"].split(",") if s.strip()]
         s = score_match(skills, job_skills)
         gaps = skill_gaps(skills, job_skills)
-        job_rows.append({"Role": role, "Match %": s, "Missing skills": ", ".join(gaps[:10]) + ("..." if len(gaps) > 10 else "")})
+        job_rows.append(
+            {
+                "Role": role,
+                "Match %": s,
+                "Missing skills": ", ".join(gaps[:10]) + ("..." if len(gaps) > 10 else ""),
+            }
+        )
 
     df = pd.DataFrame(job_rows).sort_values("Match %", ascending=False)
     st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.write("**Top Role Fit:**", df.iloc[0]["Role"] if len(df) else "—")
 
-    # simple bar chart
     st.bar_chart(df.set_index("Role")["Match %"])
 
     st.divider()
@@ -191,5 +219,5 @@ with col2:
         "Download parsed JSON",
         data=json.dumps(parsed, indent=2).encode("utf-8"),
         file_name="parsed_resume.json",
-        mime="application/json"
+        mime="application/json",
     )
