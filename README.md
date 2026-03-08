@@ -1,131 +1,39 @@
 # Job Market Skills Matcher (AI Job Recommender)
 
-An end-to-end **skills-based job recommender system** built on real LinkedIn job postings.
+**Live Demo:** https://skillsgap-ai.streamlit.app/
 
-**Problem this solves:** when you're new to a country or job market, you often have strong experience—but the *local job postings describe skills differently*. This project reduces that mismatch by translating a user’s skills into the “posting language”, then ranking jobs by similarity.
+An end-to-end **skills-based job recommender** built on real LinkedIn job postings to solve the **skills-translation gap** for newcomers and career switchers.
 
-> Personal motivation: I faced this skills-translation gap when I first moved to Canada. Back home in Dubai I ran a results-driven ads business for clients, but breaking into a new market meant learning how employers describe requirements locally. This system is designed to help newcomers bridge that same gap.
+**Problem:** You may have strong experience, but employers describe required skills differently in a new market.  
+**Solution:** This system normalizes skill text, translates it into “job-posting language,” and ranks jobs by similarity with **explainable matching (TF-IDF + cosine similarity).**
+
+---
+
+## Personal motivation
+
+When I moved to Canada, I faced this skills translation gap firsthand. Back home in Dubai, I ran performance marketing campaigns for clients, but breaking into a new market meant learning how job postings describe the same skills differently.  
+This project helps newcomers reduce that mismatch and find roles that match their real capabilities.
 
 ---
 
 ## What it does
 
-Given:
-- a **jobs** dataset with a `job_skills` field (plus optional metadata like location, level, type)
-- a **user queries** file with a `job_skills` field
+**Inputs**
+- Jobs dataset with a `job_skills` field (+ optional metadata: location, level, type)
+- User queries file with a `job_skills` field
 
-It:
-1. Cleans + normalizes skill text (lowercase, remove non-letters, remove stopwords)
-2. Builds a **TF–IDF** representation for job skills
-3. Computes **cosine similarity** between a user’s skills and job skills
-4. Applies optional filters (city, country, level, type)
-5. Outputs **Top‑K ranked matches** with a similarity score
+**Pipeline**
+1. Clean + normalize skill text (lowercase, remove noise, remove stopwords)
+2. Vectorize job skills with **TF-IDF**
+3. Compute **cosine similarity** between user skills and job skills
+4. Apply optional filters (city, country, level, type)
+5. Output **Top-K ranked matches** with a similarity score
 
----
 
-## Repo structure
+**App UI**
+<img width="952" height="439" alt="dashboard for resume parser" src="https://github.com/user-attachments/assets/7cb23eaa-e2d4-4eff-972c-3de1f44494cd" />
 
-```
-.
-├── job_recommender_system.py
-├── data/
-│   └── test_cases.csv
-├── outputs/
-│   └── output_job_skills_match.csv
-├── EDA.ipynb
-├── data_cleaning.ipynb
-├── stopwords.txt
-└── LICENSE
-```
 
----
 
-## Quickstart
 
-### 1) Create a virtual environment
 
-**Windows (PowerShell):**
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-**macOS/Linux:**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2) Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3) Run the recommender
-
-```bash
-python job_recommender_system.py \
-  --jobs data/linkedin_job_posts_skills.csv \
-  --queries data/test_cases.csv \
-  --out outputs/output_job_skills_match.csv \
-  --topk 5
-```
-
-> Note: the large LinkedIn dataset is not included in the repo. See **Data** below.
-
----
-
-## Data
-
-This project was developed using:
-
-- **Dataset:** *1.3M+ LinkedIn Jobs and Skills (2024)*
-- **Source:** Kaggle (asaniczka)
-
-Because the raw dataset is large, the repo contains only:
-- `data/test_cases.csv` (sample user inputs)
-- `outputs/output_job_skills_match.csv` (example output)
-
----
-
-## Output format
-
-The system writes a CSV with columns like:
-- `query_sn` (query id)
-- `users_skills` (raw user skills)
-- `job_title`, `company`, `job_location`
-- `job_skills` (skills for the job posting)
-- `job_suitability_rank` (1…K)
-- `similarity_score` (0…1)
-
----
-
-## Why this stands out (for employers)
-
-This isn’t “just a notebook” — it’s a **reproducible pipeline** that shows:
-
-- **Product thinking:** clear inputs → clear outputs, with filtering and ranking.
-- **Applied NLP:** TF‑IDF + cosine similarity for explainable matching.
-- **Real-world framing:** focuses on the *skills-translation problem* for newcomers.
-- **Extensibility:** easy path to upgrade to embeddings, skill ontology mapping, and a web UI.
-
-If you’re reviewing this repo, check out:
-- `job_recommender_system.py` for the matching + ranking pipeline
-- `data_cleaning.ipynb` for how the dataset is prepared
-- `EDA.ipynb` for market insights and role-demand analysis
-
----
-
-## Roadmap (next iterations)
-
-- skill normalization improvements (synonyms: “analytics” vs “analytical skills”)
-- Hybrid matching: TF‑IDF + embeddings (e.g., Sentence Transformers)
-- Explainability: “missing skills” per recommended job
-- Simple web app (Streamlit/FastAPI) with a clean UI
-
----
-
-## License
-
-This project is released under the license in `LICENSE`.

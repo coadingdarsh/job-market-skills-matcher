@@ -271,7 +271,7 @@ with col1:
 
     if show_debug:
         st.divider()
-        st.subheader("🛠 Debug")
+        st.subheader("Debug")
         vocab_meta = parsed.get("vocab_meta", {})
         st.write("Vocabulary source file:", vocab_meta.get("source_file"))
         st.write("Vocabulary size:", vocab_meta.get("vocab_size"))
@@ -280,7 +280,7 @@ with col1:
 
 # Right column: job matching
 with col2:
-    st.subheader("🎯 Role Match (Skills-based)")
+    st.subheader(" Role Match (Skills-based)")
 
     if not st.session_state["jobs"]:
         st.warning("No roles configured.")
